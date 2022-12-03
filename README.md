@@ -69,9 +69,9 @@
 | **FLARUM_ADMIN_MAIL** | User admin adress mail | **required** | none
 | **FLARUM_TITLE** | Set a name of your flarum | *optional* | Docker-Flarum
 
-## Installation
+# Installation
 
-#### 1 - Pull flarum image
+### 1 - Pull flarum image
 
 ```bash
 # Pull from hub.docker.com :
@@ -81,7 +81,7 @@ docker pull mondedie/flarum:latest
 docker build -t mondedie/flarum:latest https://github.com/mondediefr/docker-flarum.git
 ```
 
-#### 2 - Docker-compose.yml
+### 2 - `docker-compose-install.yml`
 
 ```yml
 version: "3"
@@ -114,7 +114,43 @@ services:
       - /mnt/docker/mysql/db:/var/lib/mysql
 ```
 
-#### 3 - Run it
+### 3 - `docker-compose.yml`
+
+```yml
+version: "3"
+
+services:
+  flarum:
+    image: mondedie/flarum:stable
+    container_name: flarum
+    env_file:
+      - /mnt/docker/flarum/flarum.env
+    volumes:
+      - /mnt/docker/flarum/assets:/flarum/app/public/assets
+      - /mnt/docker/flarum/extensions:/flarum/app/extensions
+      - /mnt/docker/flarum/storage/logs:/flarum/app/storage/logs
+      - /mnt/docker/flarum/nginx:/etc/nginx/flarum
+      - /mnt/docker/flarum/vendor:/flarum/app/vendor
+      - /mnt/docker/flarum/composer.json:/flarum/app/composer.json
+      - /mnt/docker/flarum/composer.lock:/flarum/app/composer.lock
+    ports:
+      - 80:8888
+    depends_on:
+      - mariadb
+
+  mariadb:
+    image: mariadb:10.5
+    container_name: mariadb
+    environment:
+      - MYSQL_ROOT_PASSWORD=xxxxxxxxxx
+      - MYSQL_DATABASE=flarum
+      - MYSQL_USER=flarum
+      - MYSQL_PASSWORD=xxxxxxxxxx
+    volumes:
+      - /mnt/docker/mysql/db:/var/lib/mysql
+```
+
+### 4 - Reverse proxy
 
 You need a reverse proxy to access flarum, this is not described here. You can use the solution of your choice (Traefik, Nginx, Apache, Haproxy, Caddy, H2O...etc).
 
@@ -142,12 +178,12 @@ FLARUM_ADMIN_MAIL=admin@domain.tld
 FLARUM_TITLE=Test flarum
 ```
 
-Run your docker-compose
+### Run the docker-compose-install (only first time)
 
 ```sh
 docker-compose up -d mariadb
 # Wait a moment for the creation of the database
-docker-compose up -d flarum
+docker-compose -f docker-compose-install.yml up
 ```
 
 * :warning: Your admin password must contain at least **8 characters** (FLARUM_ADMIN_PASS).
@@ -155,7 +191,23 @@ docker-compose up -d flarum
 
 ![flarum-home](http://i.imgur.com/6kH9iTV.png)
 
-### Install additional php extensions
+### Copy the composer files
+
+Run these commands while flarum is still running:\
+`docker cp flarum:/flarum/app/composer.json /mnt/docker/flarum/composer.json`\
+`docker cp flarum:/flarum/app/composer.lock /mnt/docker/flarum/composer.lock`
+
+----------
+
+# Run flarum after first installation
+
+```sh
+docker-compose up
+```
+
+----------
+
+# Install additional php extensions
 
 ```yml
 version: "3"
@@ -176,11 +228,11 @@ services:
 This example install php8-gmp php8-session and php8-brotli with apk  
 You can find a php extension here https://pkgs.alpinelinux.org/packages?name=php8-*&branch=v3.13&arch=x86_64
 
-### Install custom extensions
+# Install custom extensions
 
 **Flarum extensions list :** https://flagrow.io/extensions
 
-#### Install an extension
+# Install an extension
 
 ```sh
 docker exec -ti flarum extension require some/extension
